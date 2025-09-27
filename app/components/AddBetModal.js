@@ -50,9 +50,8 @@ const AddBetModal = () => {
       newErrors.category = 'Category is required';
     }
     
-    if (!formData.expiresAt) {
-      newErrors.expiresAt = 'Expiration date is required';
-    } else {
+    // Make expiration date optional - will default to 7 days from now
+    if (formData.expiresAt) {
       const expirationDate = new Date(formData.expiresAt);
       const now = new Date();
       if (expirationDate <= now) {
@@ -73,14 +72,21 @@ const AddBetModal = () => {
     
     try {
       const betData = {
-        ...formData,
-        tags: formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag),
-        expiresAt: new Date(formData.expiresAt).toISOString()
+        title: formData.title,
+        description: formData.description,
+        category: formData.category,
+        expiresAt: formData.expiresAt ? new Date(formData.expiresAt).toISOString() : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // Default to 7 days from now
+        tags: formData.tags ? formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag) : [],
+        createdBy: formData.createdBy || 'Anonymous'
       };
+      
+      console.log('Submitting bet data:', betData);
       
       await actions.addBet(betData);
       
-      // Reset form
+      console.log('Bet created successfully');
+      
+      // Reset form only on success
       setFormData({
         title: '',
         description: '',
@@ -90,9 +96,15 @@ const AddBetModal = () => {
         createdBy: ''
       });
       
+      // Clear any errors
+      setErrors({});
+      
+      // Close modal only on success
       actions.toggleAddBetModal();
     } catch (error) {
       console.error('Error adding bet:', error);
+      // Set error message instead of closing modal
+      setErrors({ submit: 'Failed to create prediction. Please try again.' });
     } finally {
       setIsSubmitting(false);
     }
@@ -111,14 +123,9 @@ const AddBetModal = () => {
     <div 
       className="fixed inset-0 z-50 overflow-y-auto"
       style={{ backgroundColor: colors.background.modal }}
+      onClick={handleClose}
     >
       <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-        {/* Background overlay */}
-        <div 
-          className="fixed inset-0 transition-opacity"
-          onClick={handleClose}
-        />
-
         {/* Modal panel */}
         <div 
           className="inline-block align-bottom rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full"
@@ -327,6 +334,20 @@ const AddBetModal = () => {
               </p>
             </div>
 
+            {/* Submit Error */}
+            {errors.submit && (
+              <div 
+                className="p-3 rounded-lg text-sm"
+                style={{ 
+                  backgroundColor: colors.status.error + '20',
+                  color: colors.status.error,
+                  border: `1px solid ${colors.status.error}40`
+                }}
+              >
+                {errors.submit}
+              </div>
+            )}
+
             {/* Buttons */}
             <div className="flex space-x-3 pt-4">
               <button
@@ -345,12 +366,18 @@ const AddBetModal = () => {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="flex-1 px-4 py-2 rounded-lg font-medium text-sm transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 px-4 py-2 rounded-lg font-medium text-sm transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 style={{ 
                   background: colors.primary.gradient,
                   color: colors.text.primary
                 }}
               >
+                {isSubmitting && (
+                  <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                )}
                 {isSubmitting ? 'Creating...' : 'Create Prediction'}
               </button>
             </div>

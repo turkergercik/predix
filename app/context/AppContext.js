@@ -213,8 +213,11 @@ export function AppProvider({ children }) {
       if (!response.ok) throw new Error('Failed to add bet');
       const newBet = await response.json();
       dispatch({ type: actionTypes.ADD_BET, payload: newBet });
+      dispatch({ type: actionTypes.SET_LOADING, payload: false });
     } catch (error) {
       dispatch({ type: actionTypes.SET_ERROR, payload: error.message });
+      dispatch({ type: actionTypes.SET_LOADING, payload: false });
+      throw error; // Re-throw to let the modal handle it
     }
   };
 
